@@ -24,7 +24,7 @@ def cli():
     default="english",
 )
 @click.option("-c", "--checkpoint", type=int, default=None)
-@click.option("-e", "--epochs", type=int, default=1000)
+@click.option("-e", "--epochs", type=int, default=250)
 def train(dataset: str, checkpoint: int | None, epochs: int):
     hyper = Hyper()
     training.train(hyper, dataset, checkpoint, epochs)
@@ -37,15 +37,18 @@ def train(dataset: str, checkpoint: int | None, epochs: int):
     type=click.Choice(list(DATASETS.keys()), case_sensitive=False),
     default="english",
 )
-@click.option("-e", "--epochs", type=int, default=2)
-def optimize(dataset: str, epochs: int):
+@click.option("-e", "--epochs", type=int, default=10)
+@click.option("-nt", "--n-trials", type=int, default=100)
+@click.option("-t", "--timeout", type=int, default=600)
+@click.option("-nj", "--num-jobs", type=int, default=4)
+def optimize(dataset: str, epochs: int, n_trials: int, timeout: int, n_jobs: int):
     def train_optimize(trial: Trial):
         return training.train(Hyper.trial(trial), dataset, None, epochs, trial)
 
     pruner = optuna.pruners.MedianPruner()
 
     study = optuna.create_study(direction="minimize", pruner=pruner)
-    study.optimize(train_optimize, n_trials=100, timeout=600, n_jobs=4)
+    study.optimize(train_optimize, n_trials=n_trials, timeout=timeout, n_jobs=n_jobs)
 
     print("Number of finished trials: {}".format(len(study.trials)))
     print("Best trial:")
