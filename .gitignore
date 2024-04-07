@@ -1152,7 +1152,7 @@ project/plugins/project/
 *.dbs
 *.psm
 *.cmp
-*.html
+#*.html
 *.bsf
 
 # ignore simulation output of ModelSim

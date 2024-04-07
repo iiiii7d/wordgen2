@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>wordgen2</title>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/weighted@1.0.0/lib/weighted.js"></script>
+    <script type="module">
+      const session = await ort.InferenceSession.create("./data/english.onnx");
+      const chars = " abcdefghijklmnopqrstuvwxyz";
+
+      async function predictChar(x = "          ") {
+        const dataA = Float32Array.from(
+          x.split("").map((a) => chars.indexOf(a)),
+        );
+        const dataB = Float32Array.from(Array(128 * 1).fill(0));
+        const tensorA = new ort.Tensor("float32", dataA, [dataA.length]);
+        const tensorB = new ort.Tensor("float32", dataB, [1, 128]);
+
+        // prepare feeds. use model input names as keys.
+        const feeds = {
+          "onnx::Cast_0": tensorA,
+          "onnx::Unsqueeze_1": tensorB,
+        };
+
+        // feed inputs and run
+        const results = await session.run(feeds);
+
+        // read from results
+        const dataC = results["88"].data;
+        return chars[select(dataC, dataC)];
+      }
+
+      async function predictWord(x = "          ") {
+        do {
+          x += await predictChar(x.slice(-10));
+        } while (x[x.length - 1] != " ");
+        return x.trim();
+      }
+
+      (async () => {
+        let a = await predictWord();
+        document.write(a);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
