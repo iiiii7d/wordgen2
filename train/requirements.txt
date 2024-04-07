@@ -2,4 +2,9 @@ lightning
 jupyter
 tensorboard
 onnx
+optuna
+requests
+click
+black
+isort
 # pip install --index-url https://download.pytorch.org/whl/nightly/cpu
