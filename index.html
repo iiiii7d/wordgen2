@@ -6,7 +6,6 @@
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/weighted@1.0.0/lib/weighted.js"></script>
     <script defer type="module">
-      const session = await ort.InferenceSession.create("./data/english.onnx");
       const MODELS = {
         english: {
           session: null,
