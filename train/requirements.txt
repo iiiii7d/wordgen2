@@ -3,6 +3,7 @@ jupyter
 tensorboard
 onnx
 optuna
+optuna-integration
 requests
 click
 black

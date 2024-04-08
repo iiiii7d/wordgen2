@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 
 
 class BaseDataset(ABC, Dataset):
-    chars: list[str]
+    chars: str
     words: list[str]
     train_data: list[str]
     id: str = "base"
@@ -56,4 +56,19 @@ class EnglishDataset(BaseDataset):
         return text
 
 
-DATASETS: dict[str, Type[BaseDataset]] = {"english": EnglishDataset}
+class PeriodicDataset(EnglishDataset):
+    id = "periodic"
+
+    @staticmethod
+    def get_words() -> list[str]:
+        with open("./data/periodic.data") as f:
+            text = f.read()
+        text = text.strip().replace("\r", "").split("\n")
+        shuffle(text)
+        return text
+
+
+DATASETS: dict[str, Type[BaseDataset]] = {
+    "english": EnglishDataset,
+    "periodic": PeriodicDataset,
+}

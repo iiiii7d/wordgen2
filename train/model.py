@@ -16,8 +16,9 @@ class Model(L.LightningModule):
         self.hyper = hyper
         self.alphabet_len = alphabet_len
         self.id = id_
-        self.example_input_array = torch.randn(hyper.chunk_size), torch.zeros(
-            hyper.layers, hyper.hidden_size
+        self.example_input_array = (
+            torch.randn(hyper.chunk_size),
+            torch.zeros(hyper.layers, hyper.hidden_size),
         )
         self.save_hyperparameters()
 
@@ -43,7 +44,7 @@ class Model(L.LightningModule):
         h = torch.zeros(
             self.hyper.layers, self.hyper.batch_size, self.hyper.hidden_size
         )
-        return self.output(self.gru(x.float(), h)[0])
+        return self.output(self.gru(x.float(), h.to(x).float())[0])
 
     def predict_forward(self, x, skip_first: bool = False):
         h = torch.zeros(self.hyper.layers, self.hyper.hidden_size)
@@ -55,7 +56,7 @@ class Model(L.LightningModule):
 
     def forward(self, x, h) -> torch.Tensor:
         x = F.one_hot(x.long(), self.alphabet_len)
-        y = self.output(self.gru(x.float(), h)[0])
+        y = self.output(self.gru(x.float(), h.to(x).float())[0])
         return F.softmax(y[-1], 0)
 
     def configure_optimizers(self):
@@ -73,3 +74,4 @@ class Model(L.LightningModule):
 class ModelCallback(L.Callback):
     def on_train_epoch_start(self, trainer, model: Model):
         model.to_onnx(f"data/{model.id}.onnx", export_params=True)
+        trainer.save_checkpoint(f"data/{model.id}.ckpt")
