@@ -20,7 +20,7 @@ class BaseDataset(ABC, Dataset):
 
     def char2vec(self, word):
         try:
-            return [self.chars.index(c) for c in word]
+            return [self.chars.index(c) for c in word if c in self.chars]
         except Exception as e:
             raise ValueError(repr(word)) from e
 
@@ -68,7 +68,21 @@ class PeriodicDataset(EnglishDataset):
         return text
 
 
+class CitiesDataset(BaseDataset):
+    id = "cities"
+    chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ "
+
+    @staticmethod
+    def get_words() -> list[str]:
+        with open("./data/cities.data") as f:
+            text = f.read()
+        text = text.strip().replace("\r", "").split("\n")
+        shuffle(text)
+        return text
+
+
 DATASETS: dict[str, Type[BaseDataset]] = {
     "english": EnglishDataset,
     "periodic": PeriodicDataset,
+    "cities": CitiesDataset,
 }

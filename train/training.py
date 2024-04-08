@@ -44,7 +44,8 @@ def train(
     if checkpoint is not None:
         ckpt = glob(f"./lightning_logs/version_{checkpoint}/checkpoints/*.ckpt")[0]
     elif trial is None:
-        ckpt = f"data/{model.id}.ckpt"
+        ckpt = glob(f"data/{model.id}.ckpt")
+        ckpt = None if len(ckpt) == 0 else ckpt[0]
     else:
         ckpt = None
 

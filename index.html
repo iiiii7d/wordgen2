@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <title>wordgen2</title>
+    <style>
+      * {
+        font-size: 1.5em;
+      }
+    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/weighted@1.0.0/lib/weighted.js"></script>
     <script defer type="module">
@@ -19,6 +25,16 @@
         periodic: {
           session: null,
           chars: " abcdefghijklmnopqrstuvwxyz",
+          inOut: {
+            x: "onnx::Cast_0",
+            h: "onnx::Cast_1",
+            o: "90",
+          },
+        },
+        cities: {
+          session: null,
+          chars:
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ ",
           inOut: {
             x: "onnx::Cast_0",
             h: "onnx::Cast_1",
@@ -70,13 +86,14 @@
         );
         const sum = dataC.reduce((a, b) => a + b, 0);
         dataC = dataC.map((a) => a / sum);
+        console.log(dataC);
         return model.chars[select(dataC, dataC)];
       }
 
       async function generateWord(model, temp = 1, x = "          ") {
         do {
           x += await predictChar(model, temp, x.slice(-10));
-        } while (x[x.length - 1] != " ");
+        } while (x[x.length - 1] != " " && x.length < 100);
         return x.trim();
       }
 
