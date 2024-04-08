@@ -1,110 +1,117 @@
 <!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <title>wordgen2</title>
-  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/weighted@1.0.0/lib/weighted.js"></script>
-  <script defer type="module">
-    const session = await ort.InferenceSession.create("./data/english.onnx");
-    const MODELS = {
-      english: {
-        session: null,
-        chars: " abcdefghijklmnopqrstuvwxyz",
-        inOut: {
-          x: "onnx::Cast_0",
-          h: "onnx::Unsqueeze_1",
-          o: "88",
-        }
-      },
-      periodic: {
-        session: null,
-        chars: " abcdefghijklmnopqrstuvwxyz",
-        inOut: {
-          x: "onnx::Cast_0",
-          h: "onnx::Cast_1",
-          o: "90",
-        }
-      }
-    };
-    async function getModel(id) {
-      let dict = MODELS[id];
-      if (dict.session === null) {
-        dict.session = await ort.InferenceSession.create(
-          "./data/" + id + ".onnx",
-        );
-      }
-      if (dict.chars === null) {
-        dict.chars = await fetch("./data/" + id + ".chars").then((a) =>
-          a.text(),
-        );
-      }
-      return dict;
-    }
-    for (let id of Object.keys(MODELS)) {
-      let ele = document.createElement("option");
-      ele.setAttribute("value", id);
-      ele.innerText = id;
-      document.querySelector("#model").appendChild(ele);
-    }
-
-    async function predictChar(model, temp = 1, x = "          ") {
-      const dataA = Float32Array.from(
-        x.split("").map((a) => model.chars.indexOf(a)),
-      );
-      const dataB = Float32Array.from(Array(128 * 1).fill(0));
-      const tensorA = new ort.Tensor("float32", dataA, [dataA.length]);
-      const tensorB = new ort.Tensor("float32", dataB, [1, 128]);
-
-      // prepare feeds. use model input names as keys.
-      const feeds = {
-        [model.inOut.x]: tensorA,
-        [model.inOut.h]: tensorB,
+  <head>
+    <meta charset="UTF-8" />
+    <title>wordgen2</title>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/weighted@1.0.0/lib/weighted.js"></script>
+    <script defer type="module">
+      const session = await ort.InferenceSession.create("./data/english.onnx");
+      const MODELS = {
+        english: {
+          session: null,
+          chars: " abcdefghijklmnopqrstuvwxyz",
+          inOut: {
+            x: "onnx::Cast_0",
+            h: "onnx::Unsqueeze_1",
+            o: "88",
+          },
+        },
+        periodic: {
+          session: null,
+          chars: " abcdefghijklmnopqrstuvwxyz",
+          inOut: {
+            x: "onnx::Cast_0",
+            h: "onnx::Cast_1",
+            o: "90",
+          },
+        },
       };
-
-      // feed inputs and run
-      const results = await model.session.run(feeds);
-
-      // read from results
-      let dataC = results[model.inOut.o].data.map(a => Math.pow(a, 1 / temp));
-      const sum = dataC.reduce((a, b) => a + b, 0);
-      dataC = dataC.map(a => a / sum)
-      return model.chars[select(dataC, dataC)];
-    }
-
-    async function generateWord(model, temp = 1, x = "          ") {
-      do {
-        x += await predictChar(model, temp, x.slice(-10));
-      } while (x[x.length - 1] != " ");
-      return x.trim();
-    }
-
-    document
-      .querySelector("#generate")
-      .addEventListener("click", async () => {
-        let model = await getModel(document.querySelector("#model").value);
-        let temp = Number(document.querySelector("#temp").value);
-        if (temp < 0.05 || temp > 10) {
-          temp = 1
-          document.querySelector("#temp").value = "1"
+      async function getModel(id) {
+        let dict = MODELS[id];
+        if (dict.session === null) {
+          dict.session = await ort.InferenceSession.create(
+            "./data/" + id + ".onnx",
+          );
         }
-        console.log(temp);
-        let word = await generateWord(model, temp);
-        document
-          .querySelector("#words")
-          .prepend(document.createElement("br"));
-        document.querySelector("#words").prepend(word);
-      });
-  </script>
-</head>
+        if (dict.chars === null) {
+          dict.chars = await fetch("./data/" + id + ".chars").then((a) =>
+            a.text(),
+          );
+        }
+        return dict;
+      }
+      for (let id of Object.keys(MODELS)) {
+        let ele = document.createElement("option");
+        ele.setAttribute("value", id);
+        ele.innerText = id;
+        document.querySelector("#model").appendChild(ele);
+      }
 
-<body>
-  <select id="model"></select>
-  <input type="number" id="temp" min="0.1" max="10" step="0.1" placeholder="Temp." />
-  <button id="generate">Generate</button><br />
-  <div id="words"></div>
-  <a href="https://github.com/iiiii7d/wordgen2/tree/main">Source</a>
-</body>
+      async function predictChar(model, temp = 1, x = "          ") {
+        const dataA = Float32Array.from(
+          x.split("").map((a) => model.chars.indexOf(a)),
+        );
+        const dataB = Float32Array.from(Array(128 * 1).fill(0));
+        const tensorA = new ort.Tensor("float32", dataA, [dataA.length]);
+        const tensorB = new ort.Tensor("float32", dataB, [1, 128]);
 
+        // prepare feeds. use model input names as keys.
+        const feeds = {
+          [model.inOut.x]: tensorA,
+          [model.inOut.h]: tensorB,
+        };
+
+        // feed inputs and run
+        const results = await model.session.run(feeds);
+
+        // read from results
+        let dataC = results[model.inOut.o].data.map((a) =>
+          Math.pow(a, 1 / temp),
+        );
+        const sum = dataC.reduce((a, b) => a + b, 0);
+        dataC = dataC.map((a) => a / sum);
+        return model.chars[select(dataC, dataC)];
+      }
+
+      async function generateWord(model, temp = 1, x = "          ") {
+        do {
+          x += await predictChar(model, temp, x.slice(-10));
+        } while (x[x.length - 1] != " ");
+        return x.trim();
+      }
+
+      document
+        .querySelector("#generate")
+        .addEventListener("click", async () => {
+          let model = await getModel(document.querySelector("#model").value);
+          let temp = Number(document.querySelector("#temp").value);
+          if (temp < 0.05 || temp > 10) {
+            temp = 1;
+            document.querySelector("#temp").value = "1";
+          }
+          console.log(temp);
+          let word = await generateWord(model, temp);
+          document
+            .querySelector("#words")
+            .prepend(document.createElement("br"));
+          document.querySelector("#words").prepend(word);
+        });
+    </script>
+  </head>
+
+  <body>
+    <select id="model"></select>
+    <input
+      type="number"
+      id="temp"
+      min="0.1"
+      max="10"
+      step="0.1"
+      placeholder="Temp."
+    />
+    <button id="generate">Generate</button><br />
+    <div id="words"></div>
+    <a href="https://github.com/iiiii7d/wordgen2/tree/main">Source</a>
+  </body>
 </html>
