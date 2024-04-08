@@ -5,13 +5,34 @@
     <title>wordgen2</title>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/weighted@1.0.0/lib/weighted.js"></script>
-    <script type="module">
+    <script defer type="module">
       const session = await ort.InferenceSession.create("./data/english.onnx");
-      const chars = " abcdefghijklmnopqrstuvwxyz";
+      const MODELS = {
+        english: {
+          session: null,
+          chars: " abcdefghijklmnopqrstuvwxyz",
+        }
+      };
+      async function getModel(id) {
+        let dict = MODELS[id]
+        if (dict.session === null) {
+          dict.session = await ort.InferenceSession.create("./data/"+id+".onnx")
+        }
+        if (dict.chars === null) {
+          dict.chars = await fetch("").then(a => a.text())
+        }
+        return dict
+      }
+      for (let id of Object.keys(MODELS)) {
+        let ele = document.createElement("option")
+        ele.setAttribute("value", id)
+        ele.innerText = id
+        document.querySelector("#model").appendChild(ele)
+      }
 
-      async function predictChar(x = "          ") {
+      async function predictChar(model, x = "          ") {
         const dataA = Float32Array.from(
-          x.split("").map((a) => chars.indexOf(a)),
+          x.split("").map((a) => model.chars.indexOf(a)),
         );
         const dataB = Float32Array.from(Array(128 * 1).fill(0));
         const tensorA = new ort.Tensor("float32", dataA, [dataA.length]);
@@ -24,25 +45,31 @@
         };
 
         // feed inputs and run
-        const results = await session.run(feeds);
+        const results = await model.session.run(feeds);
 
         // read from results
         const dataC = results["88"].data;
-        return chars[select(dataC, dataC)];
+        return model.chars[select(dataC, dataC)];
       }
 
-      async function predictWord(x = "          ") {
+      async function generateWord(model, x = "          ") {
         do {
-          x += await predictChar(x.slice(-10));
+          x += await predictChar(model, x.slice(-10));
         } while (x[x.length - 1] != " ");
         return x.trim();
       }
-
-      (async () => {
-        let a = await predictWord();
-        document.write(a);
-      })();
+      
+      document.querySelector("#generate").addEventListener("click", async () => {
+        let model = await getModel(document.querySelector("#model").value);
+        let word = await generateWord(model)
+        document.querySelector("#words").prepend(document.createElement("br"))
+        document.querySelector("#words").prepend(word)
+      })
     </script>
   </head>
-  <body></body>
+  <body>
+    <select id="model" placeholder="from dataset..."></select>
+    <button id="generate">Generate</button><br>
+    <div id="words"></div>
+  </body>
 </html>
